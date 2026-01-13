@@ -300,3 +300,179 @@ def low_performing_products(transactions, threshold=10):
     low_performers.sort(key=lambda x: x[1])
 
     return low_performers
+
+
+from datetime import datetime
+
+
+def generate_sales_report(transactions, enriched_transactions, output_file="output/sales_report.txt"):
+    """
+    Generates a comprehensive formatted text report
+    """
+
+    # ---------- BASIC METRICS ----------
+    total_transactions = len(transactions)
+    total_revenue = sum(tx["quantity"] * tx["unit_price"] for tx in transactions)
+    avg_order_value = total_revenue / total_transactions if total_transactions else 0
+
+    dates = sorted(tx["date"] for tx in transactions)
+    date_range = f"{dates[0]} to {dates[-1]}" if dates else "N/A"
+
+    # ---------- REGION-WISE PERFORMANCE ----------
+    region_stats = {}
+    for tx in transactions:
+        region = tx["region"]
+        revenue = tx["quantity"] * tx["unit_price"]
+
+        if region not in region_stats:
+            region_stats[region] = {"sales": 0.0, "count": 0}
+
+        region_stats[region]["sales"] += revenue
+        region_stats[region]["count"] += 1
+
+    region_stats = dict(
+        sorted(region_stats.items(), key=lambda x: x[1]["sales"], reverse=True)
+    )
+
+    # ---------- TOP PRODUCTS ----------
+    product_stats = {}
+    for tx in transactions:
+        name = tx["product_name"]
+        if name not in product_stats:
+            product_stats[name] = {"qty": 0, "revenue": 0.0}
+
+        product_stats[name]["qty"] += tx["quantity"]
+        product_stats[name]["revenue"] += tx["quantity"] * tx["unit_price"]
+
+    top_products = sorted(
+        product_stats.items(),
+        key=lambda x: x[1]["qty"],
+        reverse=True
+    )[:5]
+
+    # ---------- TOP CUSTOMERS ----------
+    customer_stats = {}
+    for tx in transactions:
+        cid = tx["customer_id"]
+        revenue = tx["quantity"] * tx["unit_price"]
+
+        if cid not in customer_stats:
+            customer_stats[cid] = {"spent": 0.0, "orders": 0}
+
+        customer_stats[cid]["spent"] += revenue
+        customer_stats[cid]["orders"] += 1
+
+    top_customers = sorted(
+        customer_stats.items(),
+        key=lambda x: x[1]["spent"],
+        reverse=True
+    )[:5]
+
+    # ---------- DAILY SALES TREND ----------
+    daily_stats = {}
+    for tx in transactions:
+        date = tx["date"]
+        revenue = tx["quantity"] * tx["unit_price"]
+
+        if date not in daily_stats:
+            daily_stats[date] = {"revenue": 0.0, "count": 0, "customers": set()}
+
+        daily_stats[date]["revenue"] += revenue
+        daily_stats[date]["count"] += 1
+        daily_stats[date]["customers"].add(tx["customer_id"])
+
+    daily_stats = dict(sorted(daily_stats.items()))
+
+    peak_day = max(
+        daily_stats.items(),
+        key=lambda x: x[1]["revenue"]
+    )
+
+    # ---------- LOW PERFORMING PRODUCTS ----------
+    low_products = [
+        (name, data["qty"], data["revenue"])
+        for name, data in product_stats.items()
+        if data["qty"] < 10
+    ]
+
+    # ---------- API ENRICHMENT SUMMARY ----------
+    total_enriched = sum(1 for tx in enriched_transactions if tx.get("API_Match"))
+    success_rate = (total_enriched / len(enriched_transactions)) * 100 if enriched_transactions else 0
+
+    not_enriched_products = sorted({
+        tx["product_name"]
+        for tx in enriched_transactions
+        if not tx.get("API_Match")
+    })
+
+    # ---------- WRITE REPORT ----------
+    with open(output_file, "w", encoding="utf-8") as file:
+        file.write("=" * 40 + "\n")
+        file.write("SALES ANALYTICS REPORT\n")
+        file.write(f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
+        file.write(f"Records Processed: {total_transactions}\n")
+        file.write("=" * 40 + "\n\n")
+
+        file.write("OVERALL SUMMARY\n")
+        file.write("-" * 40 + "\n")
+        file.write(f"Total Revenue: ₹{total_revenue:,.2f}\n")
+        file.write(f"Total Transactions: {total_transactions}\n")
+        file.write(f"Average Order Value: ₹{avg_order_value:,.2f}\n")
+        file.write(f"Date Range: {date_range}\n\n")
+
+        file.write("REGION-WISE PERFORMANCE\n")
+        file.write("-" * 40 + "\n")
+        for region, data in region_stats.items():
+            percent = (data["sales"] / total_revenue) * 100
+            file.write(
+                f"{region:<10} ₹{data['sales']:,.2f}  "
+                f"{percent:.2f}%  {data['count']} orders\n"
+            )
+        file.write("\n")
+
+        file.write("TOP 5 PRODUCTS\n")
+        file.write("-" * 40 + "\n")
+        for i, (name, data) in enumerate(top_products, 1):
+            file.write(
+                f"{i}. {name} | Qty: {data['qty']} | Revenue: ₹{data['revenue']:,.2f}\n"
+            )
+        file.write("\n")
+
+        file.write("TOP 5 CUSTOMERS\n")
+        file.write("-" * 40 + "\n")
+        for i, (cid, data) in enumerate(top_customers, 1):
+            file.write(
+                f"{i}. {cid} | Spent: ₹{data['spent']:,.2f} | Orders: {data['orders']}\n"
+            )
+        file.write("\n")
+
+        file.write("DAILY SALES TREND\n")
+        file.write("-" * 40 + "\n")
+        for date, data in daily_stats.items():
+            file.write(
+                f"{date} | ₹{data['revenue']:,.2f} | "
+                f"{data['count']} tx | {len(data['customers'])} customers\n"
+            )
+        file.write("\n")
+
+        file.write("PRODUCT PERFORMANCE ANALYSIS\n")
+        file.write("-" * 40 + "\n")
+        file.write(f"Best Selling Day: {peak_day[0]} (₹{peak_day[1]['revenue']:,.2f})\n")
+
+        if low_products:
+            file.write("Low Performing Products:\n")
+            for name, qty, rev in low_products:
+                file.write(f"- {name}: Qty {qty}, Revenue ₹{rev:,.2f}\n")
+        else:
+            file.write("No low performing products found.\n")
+        file.write("\n")
+
+        file.write("API ENRICHMENT SUMMARY\n")
+        file.write("-" * 40 + "\n")
+        file.write(f"Total Products Enriched: {total_enriched}\n")
+        file.write(f"Success Rate: {success_rate:.2f}%\n")
+        file.write("Products Not Enriched:\n")
+        for name in not_enriched_products:
+            file.write(f"- {name}\n")
+
+    print(f"Sales report generated at {output_file}")
