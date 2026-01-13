@@ -46,3 +46,68 @@ def create_product_mapping(api_products):
         }
 
     return product_mapping
+
+
+def enrich_sales_data(transactions, product_mapping):
+    """
+    Enriches transaction data with API product information
+    """
+
+    enriched_transactions = []
+
+    for tx in transactions:
+        enriched_tx = tx.copy()
+
+        try:
+            # Extract numeric ID from ProductID (e.g., P101 -> 101)
+            product_id_str = tx["product_id"].replace("P", "")
+            product_id = int(product_id_str)
+
+            if product_id in product_mapping:
+                api_product = product_mapping[product_id]
+
+                enriched_tx["API_Category"] = api_product.get("category")
+                enriched_tx["API_Brand"] = api_product.get("brand")
+                enriched_tx["API_Rating"] = api_product.get("rating")
+                enriched_tx["API_Match"] = True
+            else:
+                enriched_tx["API_Category"] = None
+                enriched_tx["API_Brand"] = None
+                enriched_tx["API_Rating"] = None
+                enriched_tx["API_Match"] = False
+
+        except:
+            enriched_tx["API_Category"] = None
+            enriched_tx["API_Brand"] = None
+            enriched_tx["API_Rating"] = None
+            enriched_tx["API_Match"] = False
+
+        enriched_transactions.append(enriched_tx)
+
+    return enriched_transactions
+
+
+def save_enriched_data(enriched_transactions, filename="data/enriched_sales_data.txt"):
+    """
+    Saves enriched transactions back to file
+    """
+
+    header = (
+        "TransactionID|Date|ProductID|ProductName|Quantity|UnitPrice|"
+        "CustomerID|Region|API_Category|API_Brand|API_Rating|API_Match\n"
+    )
+
+    with open(filename, "w", encoding="utf-8") as file:
+        file.write(header)
+
+        for tx in enriched_transactions:
+            line = (
+                f"{tx['transaction_id']}|{tx['date']}|{tx['product_id']}|"
+                f"{tx['product_name']}|{tx['quantity']}|{tx['unit_price']}|"
+                f"{tx['customer_id']}|{tx['region']}|"
+                f"{tx.get('API_Category')}|{tx.get('API_Brand')}|"
+                f"{tx.get('API_Rating')}|{tx.get('API_Match')}\n"
+            )
+            file.write(line)
+
+    print(f"Enriched sales data saved to {filename}")
