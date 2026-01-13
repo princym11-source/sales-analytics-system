@@ -128,3 +128,37 @@ def region_wise_sales(transactions):
         sorted_regions[region]["percentage"] = round(percentage, 2)
 
     return sorted_regions
+
+
+def top_selling_products(transactions, n=5):
+    """
+    Finds top n products by total quantity sold
+    """
+
+    product_data = {}
+
+    for tx in transactions:
+        product = tx["product_name"]
+        quantity = tx["quantity"]
+        revenue = quantity * tx["unit_price"]
+
+        if product not in product_data:
+            product_data[product] = {
+                "quantity": 0,
+                "revenue": 0.0
+            }
+
+        product_data[product]["quantity"] += quantity
+        product_data[product]["revenue"] += revenue
+
+    sorted_products = sorted(
+        product_data.items(),
+        key=lambda item: item[1]["quantity"],
+        reverse=True
+    )
+
+    result = []
+    for product, data in sorted_products[:n]:
+        result.append((product, data["quantity"], data["revenue"]))
+
+    return result
