@@ -209,3 +209,38 @@ def customer_analysis(transactions):
     )
 
     return final_data
+
+
+def daily_sales_trend(transactions):
+    """
+    Analyzes sales trends by date
+    """
+
+    daily_data = {}
+
+    for tx in transactions:
+        date = tx["date"]
+        revenue = tx["quantity"] * tx["unit_price"]
+
+        if date not in daily_data:
+            daily_data[date] = {
+                "revenue": 0.0,
+                "transaction_count": 0,
+                "customers": set()
+            }
+
+        daily_data[date]["revenue"] += revenue
+        daily_data[date]["transaction_count"] += 1
+        daily_data[date]["customers"].add(tx["customer_id"])
+
+    # Prepare final sorted result
+    final_data = {}
+
+    for date in sorted(daily_data.keys()):
+        final_data[date] = {
+            "revenue": round(daily_data[date]["revenue"], 2),
+            "transaction_count": daily_data[date]["transaction_count"],
+            "unique_customers": len(daily_data[date]["customers"])
+        }
+
+    return final_data
