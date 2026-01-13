@@ -78,3 +78,16 @@ def validate_and_filter_transactions(transactions):
     print(f"Valid records remaining: {len(valid_transactions)}")
 
     return valid_transactions
+
+
+def calculate_total_revenue(transactions):
+    """
+    Calculates total revenue from all transactions
+    """
+
+    total_revenue = 0.0
+
+    for tx in transactions:
+        total_revenue += tx["quantity"] * tx["unit_price"]
+
+    return total_revenue
