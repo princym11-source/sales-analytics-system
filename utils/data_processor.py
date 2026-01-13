@@ -244,3 +244,23 @@ def daily_sales_trend(transactions):
         }
 
     return final_data
+
+
+def find_peak_sales_day(transactions):
+    """
+    Identifies the date with highest revenue
+    """
+
+    daily_summary = daily_sales_trend(transactions)
+
+    peak_date = None
+    max_revenue = 0.0
+    transaction_count = 0
+
+    for date, data in daily_summary.items():
+        if data["revenue"] > max_revenue:
+            max_revenue = data["revenue"]
+            peak_date = date
+            transaction_count = data["transaction_count"]
+
+    return (peak_date, max_revenue, transaction_count)
