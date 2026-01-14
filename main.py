@@ -20,78 +20,48 @@ from utils.api_handler import (
 
 
 def main():
-    try:
-        print("=" * 35)
-        print("SALES ANALYTICS SYSTEM")
-        print("=" * 35)
+    print("=" * 40)
+    print("SALES ANALYTICS SYSTEM")
+    print("=" * 40)
 
-        print("\n[1/10] Reading sales data...")
-        raw_lines = read_sales_data("data/sales_data.txt")
-        print(f"✓ Successfully read {len(raw_lines)} transactions")
+    # Step 1: Read data
+    print("\nReading sales data...")
+    raw_lines = read_sales_data("data/sales_data.txt")
 
-        print("\n[2/10] Parsing and cleaning data...")
-        transactions = parse_transactions(raw_lines)
-        print("\nValidating transactions...")
-valid_tx = validate_and_filter_transactions(transactions)
-print(f"Valid transactions: {len(valid_tx)}")
-        print(f"✓ Parsed {len(transactions)} records")
+    # Step 2: Parse data
+    print("Parsing transactions...")
+    transactions = parse_transactions(raw_lines)
 
-        print("\n[3/10] Filter Options Available:")
-        regions = sorted(set(tx["region"] for tx in transactions))
-        amounts = [tx["quantity"] * tx["unit_price"] for tx in transactions]
-        print(f"Regions: {', '.join(regions)}")
-        print(f"Amount Range: ₹{min(amounts):,.0f} - ₹{max(amounts):,.0f}")
+    # Step 3: Validate data
+    print("Validating transactions...")
+    valid_tx = validate_and_filter_transactions(transactions)
+    print(f"Valid transactions: {len(valid_tx)}")
 
-        choice = input("\nDo you want to filter data? (y/n): ").strip().lower()
+    # Step 4: Analysis
+    print("Running analysis...")
+    calculate_total_revenue(valid_tx)
+    region_wise_sales(valid_tx)
+    top_selling_products(valid_tx)
+    customer_analysis(valid_tx)
+    daily_sales_trend(valid_tx)
+    find_peak_sales_day(valid_tx)
+    low_performing_products(valid_tx)
 
-        region = None
-        min_amt = None
-        max_amt = None
+    # Step 5: API integration
+    print("Fetching product data from API...")
+    api_products = fetch_all_products()
+    product_mapping = create_product_mapping(api_products)
 
-        if choice == "y":
-            region = input("Enter region (or press Enter to skip): ").strip() or None
-            min_amt = input("Enter minimum amount (or press Enter to skip): ").strip()
-            max_amt = input("Enter maximum amount (or press Enter to skip): ").strip()
+    # Step 6: Enrich data
+    print("Enriching sales data...")
+    enriched_transactions = enrich_sales_data(valid_tx, product_mapping)
+    save_enriched_data(enriched_transactions)
 
-            min_amt = float(min_amt) if min_amt else None
-            max_amt = float(max_amt) if max_amt else None
+    # Step 7: Generate report
+    print("Generating sales report...")
+    generate_sales_report(valid_tx, enriched_transactions)
 
-        print("\n[4/10] Validating transactions...")
-        valid_tx, invalid_count, summary = validate_and_filter(
-            transactions, region, min_amt, max_amt
-        )
-        print(f"✓ Valid: {len(valid_tx)} | Invalid: {invalid_count}")
-
-        print("\n[5/10] Analyzing sales data...")
-        calculate_total_revenue(valid_tx)
-        region_wise_sales(valid_tx)
-        top_selling_products(valid_tx)
-        customer_analysis(valid_tx)
-        daily_sales_trend(valid_tx)
-        find_peak_sales_day(valid_tx)
-        low_performing_products(valid_tx)
-        print("✓ Analysis complete")
-
-        print("\n[6/10] Fetching product data from API...")
-        api_products = fetch_all_products()
-        product_mapping = create_product_mapping(api_products)
-
-        print("\n[7/10] Enriching sales data...")
-        enriched_transactions = enrich_sales_data(valid_tx, product_mapping)
-        matched = sum(1 for tx in enriched_transactions if tx.get("API_Match"))
-        print(f"✓ Enriched {matched}/{len(enriched_transactions)} transactions")
-
-        print("\n[8/10] Saving enriched data...")
-        save_enriched_data(enriched_transactions)
-
-        print("\n[9/10] Generating report...")
-        generate_sales_report(valid_tx, enriched_transactions)
-
-        print("\n[10/10] Process Complete!")
-        print("=" * 35)
-
-    except Exception as e:
-        print("❌ An error occurred:", str(e))
+    print("\nProcess completed successfully!")
 
 
 if __name__ == "__main__":
