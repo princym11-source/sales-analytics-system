@@ -1,7 +1,7 @@
 from utils.file_handler import read_sales_data
 from utils.data_processor import (
     parse_transactions,
-    validate_and_filter,
+    validate_and_filter_transactions,
     calculate_total_revenue,
     region_wise_sales,
     top_selling_products,
@@ -31,6 +31,9 @@ def main():
 
         print("\n[2/10] Parsing and cleaning data...")
         transactions = parse_transactions(raw_lines)
+        print("\nValidating transactions...")
+valid_tx = validate_and_filter_transactions(transactions)
+print(f"Valid transactions: {len(valid_tx)}")
         print(f"✓ Parsed {len(transactions)} records")
 
         print("\n[3/10] Filter Options Available:")
